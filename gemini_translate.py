@@ -7,9 +7,7 @@
 # @raycast.mode fullOutput
 # @raycast.packageName AI Tools
 # @raycast.icon 🤖
-# Optional parameters:
-# @raycast.argument1 {"type": "text", "placeholder": "翻訳するテキスト（空白時はクリップボードから取得）", "optional": true}
-# @raycast.description Gemini APIを使って日英翻訳を行うエージェント
+# @raycast.description Gemini APIを使って選択中のテキストを日英翻訳するエージェント
 # @raycast.author your_name
 
 import sys
@@ -19,6 +17,7 @@ import urllib.request
 import urllib.error
 import os
 import ssl
+import time
 from pathlib import Path
 
 # macOS Python の SSL 証明書問題を回避
@@ -62,32 +61,49 @@ def load_api_key() -> str:
     sys.exit(1)
 
 
-def get_input_text() -> str:
+def get_selected_text() -> str:
     """
-    入力テキストを取得する。
-    優先順位: Raycast 引数 → クリップボード
+    選択中のテキストを取得する。
+    現在のクリップボードを保存し、Cmd+C で選択テキストをコピー後に復元する。
     """
-    # Raycast 引数
-    if len(sys.argv) > 1 and sys.argv[1].strip():
-        return sys.argv[1].strip()
-
-    # クリップボード（macOS: pbpaste）
+    # 現在のクリップボードを保存
     try:
-        result = subprocess.run(
-            ["pbpaste"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        clipboard_text = result.stdout.strip()
-        if clipboard_text:
-            return clipboard_text
+        original_clipboard = subprocess.run(
+            ["pbpaste"], capture_output=True, text=True, timeout=5
+        ).stdout
     except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
+        original_clipboard = ""
 
-    print("❌ エラー: 翻訳するテキストがありません。")
-    print("   テキストを選択してから実行するか、引数に直接入力してください。")
-    sys.exit(1)
+    # 選択中のテキストをコピー
+    try:
+        subprocess.run(
+            ["osascript", "-e",
+             'tell application "System Events" to keystroke "c" using command down'],
+            timeout=3,
+            check=True
+        )
+        time.sleep(0.2)
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        print("❌ エラー: 選択テキストの取得に失敗しました。")
+        sys.exit(1)
+
+    # コピーされたテキストを取得
+    try:
+        selected = subprocess.run(
+            ["pbpaste"], capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        selected = ""
+
+    if not selected or selected == original_clipboard.strip():
+        # クリップボードを復元
+        if original_clipboard:
+            subprocess.run(["pbcopy"], input=original_clipboard.encode(), timeout=5)
+        print("❌ エラー: テキストが選択されていません。")
+        print("   翻訳したいテキストを選択してからホットキーを押してください。")
+        sys.exit(1)
+
+    return selected
 
 
 def build_prompt(input_text: str) -> str:
@@ -200,7 +216,7 @@ def copy_to_clipboard(text: str) -> bool:
 
 def main():
     api_key    = load_api_key()
-    input_text = get_input_text()
+    input_text = get_selected_text()
     prompt     = build_prompt(input_text)
     result     = call_gemini_api(api_key, prompt)
 
