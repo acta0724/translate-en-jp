@@ -4,7 +4,7 @@
 # Required parameters:
 # @raycast.schemaVersion 1
 # @raycast.title Gemini Translate Agent
-# @raycast.mode silent
+# @raycast.mode fullOutput
 # @raycast.packageName AI Tools
 # @raycast.icon 🤖
 # @raycast.description Gemini APIを使って選択中のテキストを日英翻訳するエージェント
@@ -74,25 +74,38 @@ def get_selected_text() -> str:
     except (subprocess.TimeoutExpired, FileNotFoundError):
         original_clipboard = ""
 
-    # 選択中のテキストをコピー（元のアプリを明示的にターゲット）
+    # Raycast以外で直前にフォーカスされていたアプリを特定してCmd+C
     try:
-        subprocess.run(
+        result = subprocess.run(
             ["osascript", "-e", """
+                set prevApp to ""
                 tell application "System Events"
-                    set frontApp to name of first application process whose frontmost is true
+                    set visibleApps to application processes whose visible is true and name is not "Raycast"
+                    if (count of visibleApps) > 0 then
+                        set prevApp to name of item 1 of visibleApps
+                    end if
                 end tell
+                if prevApp is "" then return ""
+                tell application prevApp to activate
                 delay 0.3
                 tell application "System Events"
-                    tell process frontApp
+                    tell process prevApp
                         keystroke "c" using {command down}
                     end tell
                 end tell
+                delay 0.2
+                tell application "Raycast" to activate
+                return prevApp
             """],
-            timeout=5,
-            check=True
+            timeout=8,
+            capture_output=True,
+            text=True
         )
-        time.sleep(0.3)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        if not result.stdout.strip():
+            print("❌ エラー: 前のアプリが見つかりませんでした。")
+            sys.exit(1)
+        time.sleep(0.2)
+    except subprocess.TimeoutExpired:
         print("❌ エラー: 選択テキストの取得に失敗しました。")
         sys.exit(1)
 
@@ -232,16 +245,9 @@ def main():
     # クリップボードにコピー
     copy_to_clipboard(result)
 
-    # 結果を一時ファイルに保存
-    Path("/tmp/raycast_translation.txt").write_text(result)
-
-    # Raycast URL スキームで gemini_show_result を起動
-    subprocess.run(
-        ["open", "raycast://script-commands/run?name=Gemini%20Show%20Result"],
-        timeout=5
-    )
-
-    print("✅ 翻訳完了")
+    print(result)
+    print()
+    print("✅ クリップボードにコピーしました")
 
 
 if __name__ == "__main__":
