@@ -170,19 +170,6 @@ def call_gemini_api(api_key: str, prompt: str) -> str:
         sys.exit(1)
 
 
-def copy_to_clipboard(text: str) -> bool:
-    """翻訳結果をクリップボードにコピーする。"""
-    try:
-        subprocess.run(
-            ["pbcopy"],
-            input=text.encode("utf-8"),
-            timeout=5,
-            check=True
-        )
-        return True
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
-        return False
-
 
 def main():
     api_key    = load_api_key()
@@ -190,14 +177,7 @@ def main():
     prompt     = build_prompt(input_text)
     result     = call_gemini_api(api_key, prompt)
 
-    copied = copy_to_clipboard(result)
-
     print(result)
-    print()
-    if copied:
-        print("✅ クリップボードにコピーしました")
-    else:
-        print("⚠️  クリップボードへのコピーに失敗しました")
 
 
 if __name__ == "__main__":
