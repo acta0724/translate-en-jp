@@ -5,7 +5,6 @@
 # @raycast.schemaVersion 1
 # @raycast.title Gemini Translate Agent
 # @raycast.mode fullOutput
-# @raycast.argument1 {"type": "text", "placeholder": "翻訳するテキスト（空白時はクリップボードから取得）", "optional": true}
 # @raycast.packageName AI Tools
 # @raycast.icon 🤖
 # @raycast.description Gemini APIを使って選択中のテキストを日英翻訳するエージェント
@@ -62,13 +61,7 @@ def load_api_key() -> str:
 
 
 def get_input_text() -> str:
-    """
-    入力テキストを取得する。
-    優先順位: Raycast 引数 → クリップボード
-    """
-    if len(sys.argv) > 1 and sys.argv[1].strip():
-        return sys.argv[1].strip()
-
+    """クリップボードからテキストを取得する。"""
     try:
         text = subprocess.run(
             ["pbpaste"], capture_output=True, text=True, timeout=5
@@ -78,8 +71,8 @@ def get_input_text() -> str:
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass
 
-    print("❌ エラー: 翻訳するテキストがありません。")
-    print("   テキストをコピーしてから実行するか、引数に直接入力してください。")
+    print("❌ エラー: クリップボードにテキストがありません。")
+    print("   翻訳したいテキストをコピーしてから実行してください。")
     sys.exit(1)
 
 
