@@ -40,35 +40,20 @@ chmod +x gemini_translate.py
 3. このリポジトリのディレクトリを選択
 4. `Gemini Translate Agent` が一覧に表示されれば登録完了
 
+### 5. ホットキーを設定（推奨）
+
+Raycast の設定から `Gemini Translate Agent` にホットキーを割り当てると素早く起動できます。
+
 ## 使い方
 
-### Raycast から使う
-
-Raycast を開き `Gemini Translate Agent` を検索して起動します。
-
-- **引数あり**: テキストフィールドに翻訳したいテキストを入力して実行
-- **引数なし**: クリップボードのテキストを自動取得して翻訳
-
-翻訳結果は画面に表示され、自動的にクリップボードにコピーされます。
-
-### コマンドラインから使う
-
-```bash
-# 英語 → 日本語
-python3 gemini_translate.py "Hello, world!"
-
-# 日本語 → 英語
-python3 gemini_translate.py "本日はお忙しい中お時間をいただきありがとうございます。"
-
-# クリップボードから翻訳（引数なし）
-python3 gemini_translate.py
-```
+1. 翻訳したいテキストを選択して `⌘ C` でコピー
+2. ホットキーを押す（または Raycast で `Gemini Translate Agent` を検索して起動）
+3. Raycast に翻訳結果が表示される
 
 ## 機能
 
 - 言語を自動判別して日本語↔英語を相互翻訳
 - コードスニペット・URL・固有名詞はそのまま保持
-- 翻訳結果を自動的にクリップボードにコピー
 - 外部ライブラリ不要（標準ライブラリのみ使用）
 
 ## トラブルシューティング
