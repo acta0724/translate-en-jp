@@ -30,9 +30,9 @@ except ImportError:
 SCRIPT_DIR = Path(__file__).parent
 ENV_FILE   = SCRIPT_DIR / ".env"
 API_URL    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
-TIMEOUT    = 30   # 秒
+TIMEOUT    = 15   # 秒
 TEMPERATURE = 0.3 # 翻訳精度重視（0.0〜1.0）
-MAX_TOKENS  = 8192
+MAX_TOKENS  = 1024
 # ────────────────────────────────────────────────────────────────────────────
 
 
