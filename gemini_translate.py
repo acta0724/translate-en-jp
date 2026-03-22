@@ -74,15 +74,24 @@ def get_selected_text() -> str:
     except (subprocess.TimeoutExpired, FileNotFoundError):
         original_clipboard = ""
 
-    # 選択中のテキストをコピー
+    # 選択中のテキストをコピー（元のアプリを明示的にターゲット）
     try:
         subprocess.run(
-            ["osascript", "-e",
-             'tell application "System Events" to keystroke "c" using command down'],
-            timeout=3,
+            ["osascript", "-e", """
+                tell application "System Events"
+                    set frontApp to name of first application process whose frontmost is true
+                end tell
+                delay 0.3
+                tell application "System Events"
+                    tell process frontApp
+                        keystroke "c" using {command down}
+                    end tell
+                end tell
+            """],
+            timeout=5,
             check=True
         )
-        time.sleep(0.2)
+        time.sleep(0.3)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
         print("❌ エラー: 選択テキストの取得に失敗しました。")
         sys.exit(1)
