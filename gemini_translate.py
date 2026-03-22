@@ -4,7 +4,7 @@
 # Required parameters:
 # @raycast.schemaVersion 1
 # @raycast.title Gemini Translate Agent
-# @raycast.mode fullOutput
+# @raycast.mode silent
 # @raycast.packageName AI Tools
 # @raycast.icon 🤖
 # @raycast.description Gemini APIを使って選択中のテキストを日英翻訳するエージェント
@@ -223,13 +223,11 @@ def main():
     # クリップボードにコピー
     copied = copy_to_clipboard(result)
 
-    # Raycast の fullOutput モードに表示
-    print(result)
-    print()
+    # silent モード: 最後の print が HUD 通知として表示される
     if copied:
-        print("✅ クリップボードにコピーしました")
+        print(f"✅ 翻訳完了 → クリップボードにコピーしました")
     else:
-        print("⚠️  クリップボードへのコピーに失敗しました")
+        print(f"⚠️ 翻訳完了（クリップボードへのコピーに失敗）: {result}")
 
 
 if __name__ == "__main__":
