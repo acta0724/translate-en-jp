@@ -17,7 +17,6 @@ import urllib.request
 import urllib.error
 import os
 import ssl
-import time
 from pathlib import Path
 
 # macOS Python の SSL 証明書問題を回避
@@ -63,64 +62,31 @@ def load_api_key() -> str:
 
 def get_selected_text() -> str:
     """
-    選択中のテキストを取得する。
-    現在のクリップボードを保存し、Cmd+C で選択テキストをコピー後に復元する。
+    アクセシビリティAPIで選択中のテキストを直接取得する。
+    Cmd+C不要のため、クリップボードを汚さない。
     """
-    # 現在のクリップボードを保存
-    try:
-        original_clipboard = subprocess.run(
-            ["pbpaste"], capture_output=True, text=True, timeout=5
-        ).stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        original_clipboard = ""
+    result = subprocess.run(
+        ["osascript", "-e", """
+            set selectedText to ""
+            tell application "System Events"
+                set allProcs to application processes whose visible is true and name is not "Raycast"
+                repeat with proc in allProcs
+                    try
+                        set el to focused UI element of proc
+                        set selectedText to value of attribute "AXSelectedText" of el
+                        if selectedText is not "" then exit repeat
+                    end try
+                end repeat
+            end tell
+            return selectedText
+        """],
+        timeout=8,
+        capture_output=True,
+        text=True
+    )
 
-    # Raycast以外で直前にフォーカスされていたアプリを特定してCmd+C
-    try:
-        result = subprocess.run(
-            ["osascript", "-e", """
-                set prevApp to ""
-                tell application "System Events"
-                    set visibleApps to application processes whose visible is true and name is not "Raycast"
-                    if (count of visibleApps) > 0 then
-                        set prevApp to name of item 1 of visibleApps
-                    end if
-                end tell
-                if prevApp is "" then return ""
-                tell application prevApp to activate
-                delay 0.3
-                tell application "System Events"
-                    tell process prevApp
-                        keystroke "c" using {command down}
-                    end tell
-                end tell
-                delay 0.2
-                tell application "Raycast" to activate
-                return prevApp
-            """],
-            timeout=8,
-            capture_output=True,
-            text=True
-        )
-        if not result.stdout.strip():
-            print("❌ エラー: 前のアプリが見つかりませんでした。")
-            sys.exit(1)
-        time.sleep(0.2)
-    except subprocess.TimeoutExpired:
-        print("❌ エラー: 選択テキストの取得に失敗しました。")
-        sys.exit(1)
-
-    # コピーされたテキストを取得
-    try:
-        selected = subprocess.run(
-            ["pbpaste"], capture_output=True, text=True, timeout=5
-        ).stdout.strip()
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        selected = ""
-
-    if not selected or selected == original_clipboard.strip():
-        # クリップボードを復元
-        if original_clipboard:
-            subprocess.run(["pbcopy"], input=original_clipboard.encode(), timeout=5)
+    selected = result.stdout.strip()
+    if not selected:
         print("❌ エラー: テキストが選択されていません。")
         print("   翻訳したいテキストを選択してからホットキーを押してください。")
         sys.exit(1)
