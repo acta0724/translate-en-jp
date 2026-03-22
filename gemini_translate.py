@@ -232,12 +232,25 @@ def main():
     # クリップボードにコピー
     copy_to_clipboard(result)
 
-    # ダイアログで翻訳結果を表示
-    escaped = result.replace('\\', '\\\\').replace('"', '\\"')
-    subprocess.run(
-        ["osascript", "-e", f'display dialog "{escaped}" with title "翻訳結果" buttons {{"OK"}} default button "OK"'],
-        timeout=60
-    )
+    # 別ウィンドウで翻訳結果を表示
+    window_code = f"""
+import tkinter as tk
+from tkinter import scrolledtext
+
+root = tk.Tk()
+root.title("翻訳結果")
+root.geometry("600x300")
+
+st = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Helvetica", 14))
+st.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+st.insert(tk.END, {repr(result)})
+st.config(state=tk.DISABLED)
+
+root.lift()
+root.focus_force()
+root.mainloop()
+"""
+    subprocess.Popen([sys.executable, "-c", window_code])
 
     print("✅ 翻訳完了")
 
