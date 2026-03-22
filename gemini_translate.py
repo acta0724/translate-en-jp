@@ -18,12 +18,20 @@ import subprocess
 import urllib.request
 import urllib.error
 import os
+import ssl
 from pathlib import Path
+
+# macOS Python の SSL 証明書問題を回避
+try:
+    import certifi
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    ssl_context = ssl.create_default_context()
 
 # ── 設定 ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent
 ENV_FILE   = SCRIPT_DIR / ".env"
-API_URL    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+API_URL    = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 TIMEOUT    = 30   # 秒
 TEMPERATURE = 0.3 # 翻訳精度重視（0.0〜1.0）
 MAX_TOKENS  = 8192
@@ -133,7 +141,7 @@ def call_gemini_api(api_key: str, prompt: str) -> str:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as response:
+        with urllib.request.urlopen(req, timeout=TIMEOUT, context=ssl_context) as response:
             body = json.loads(response.read().decode("utf-8"))
 
     except urllib.error.HTTPError as e:
