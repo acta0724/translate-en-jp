@@ -232,25 +232,14 @@ def main():
     # クリップボードにコピー
     copy_to_clipboard(result)
 
-    # 別ウィンドウで翻訳結果を表示
-    window_code = f"""
-import tkinter as tk
-from tkinter import scrolledtext
+    # 結果を一時ファイルに保存
+    Path("/tmp/raycast_translation.txt").write_text(result)
 
-root = tk.Tk()
-root.title("翻訳結果")
-root.geometry("600x300")
-
-st = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Helvetica", 14))
-st.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-st.insert(tk.END, {repr(result)})
-st.config(state=tk.DISABLED)
-
-root.lift()
-root.focus_force()
-root.mainloop()
-"""
-    subprocess.Popen([sys.executable, "-c", window_code])
+    # Raycast URL スキームで gemini_show_result を起動
+    subprocess.run(
+        ["open", "raycast://script-commands/run?name=Gemini%20Show%20Result"],
+        timeout=5
+    )
 
     print("✅ 翻訳完了")
 
