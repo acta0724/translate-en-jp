@@ -230,13 +230,16 @@ def main():
     result     = call_gemini_api(api_key, prompt)
 
     # クリップボードにコピー
-    copied = copy_to_clipboard(result)
+    copy_to_clipboard(result)
 
-    # silent モード: 最後の print が HUD 通知として表示される
-    if copied:
-        print(f"✅ 翻訳完了 → クリップボードにコピーしました")
-    else:
-        print(f"⚠️ 翻訳完了（クリップボードへのコピーに失敗）: {result}")
+    # ダイアログで翻訳結果を表示
+    escaped = result.replace('\\', '\\\\').replace('"', '\\"')
+    subprocess.run(
+        ["osascript", "-e", f'display dialog "{escaped}" with title "翻訳結果" buttons {{"OK"}} default button "OK"'],
+        timeout=60
+    )
+
+    print("✅ 翻訳完了")
 
 
 if __name__ == "__main__":
