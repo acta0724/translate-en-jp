@@ -5,6 +5,7 @@
 # @raycast.schemaVersion 1
 # @raycast.title Gemini Translate Agent
 # @raycast.mode fullOutput
+# @raycast.argument1 {"type": "text", "placeholder": "翻訳するテキスト（空白時はクリップボードから取得）", "optional": true}
 # @raycast.packageName AI Tools
 # @raycast.icon 🤖
 # @raycast.description Gemini APIを使って選択中のテキストを日英翻訳するエージェント
@@ -60,38 +61,26 @@ def load_api_key() -> str:
     sys.exit(1)
 
 
-def get_selected_text() -> str:
+def get_input_text() -> str:
     """
-    アクセシビリティAPIで選択中のテキストを直接取得する。
-    Cmd+C不要のため、クリップボードを汚さない。
+    入力テキストを取得する。
+    優先順位: Raycast 引数 → クリップボード
     """
-    result = subprocess.run(
-        ["osascript", "-e", """
-            set selectedText to ""
-            tell application "System Events"
-                set allProcs to application processes whose visible is true and name is not "Raycast"
-                repeat with proc in allProcs
-                    try
-                        set el to focused UI element of proc
-                        set selectedText to value of attribute "AXSelectedText" of el
-                        if selectedText is not "" then exit repeat
-                    end try
-                end repeat
-            end tell
-            return selectedText
-        """],
-        timeout=8,
-        capture_output=True,
-        text=True
-    )
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        return sys.argv[1].strip()
 
-    selected = result.stdout.strip()
-    if not selected:
-        print("❌ エラー: テキストが選択されていません。")
-        print("   翻訳したいテキストを選択してからホットキーを押してください。")
-        sys.exit(1)
+    try:
+        text = subprocess.run(
+            ["pbpaste"], capture_output=True, text=True, timeout=5
+        ).stdout.strip()
+        if text:
+            return text
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
 
-    return selected
+    print("❌ エラー: 翻訳するテキストがありません。")
+    print("   テキストをコピーしてから実行するか、引数に直接入力してください。")
+    sys.exit(1)
 
 
 def build_prompt(input_text: str) -> str:
@@ -204,16 +193,18 @@ def copy_to_clipboard(text: str) -> bool:
 
 def main():
     api_key    = load_api_key()
-    input_text = get_selected_text()
+    input_text = get_input_text()
     prompt     = build_prompt(input_text)
     result     = call_gemini_api(api_key, prompt)
 
-    # クリップボードにコピー
-    copy_to_clipboard(result)
+    copied = copy_to_clipboard(result)
 
     print(result)
     print()
-    print("✅ クリップボードにコピーしました")
+    if copied:
+        print("✅ クリップボードにコピーしました")
+    else:
+        print("⚠️  クリップボードへのコピーに失敗しました")
 
 
 if __name__ == "__main__":
